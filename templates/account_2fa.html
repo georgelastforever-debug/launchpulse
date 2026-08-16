@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}2FA Settings{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto">
+  <h2 class="text-2xl font-extrabold text-slate-900 mb-2">Two-factor authentication</h2>
+  <p class="text-slate-500 mb-6">Use Google Authenticator, Authy, 1Password, or any TOTP app.</p>
+  {% if error %}<div class="mb-4 p-3 rounded-xl bg-red-50 text-red-700 text-sm">{{ error }}</div>{% endif %}
+
+  <div class="bg-white rounded-2xl border border-orange-100 shadow-card p-6 space-y-4">
+    <p class="text-sm">Status:
+      {% if enabled %}<span class="font-bold text-emerald-600">Enabled</span>
+      {% else %}<span class="font-bold text-slate-500">Disabled</span>{% endif %}
+    </p>
+
+    {% if not enabled and not secret %}
+    <form method="POST">
+      <input type="hidden" name="action" value="start">
+      <button type="submit" class="px-4 py-2.5 rounded-xl text-sm font-bold text-white phase-buy">Set up 2FA</button>
+    </form>
+    {% endif %}
+
+    {% if secret and not enabled %}
+    <div class="space-y-2">
+      <p class="text-sm font-semibold text-slate-700">1. Add this secret to your authenticator app</p>
+      <code class="block text-sm bg-slate-50 p-3 rounded-xl break-all font-mono tracking-wider select-all">{{ secret }}</code>
+      <p class="text-xs text-slate-400">Type: Time-based (TOTP) · 6 digits · 30 seconds</p>
+      {% if provisioning_uri %}
+      <p class="text-[10px] text-slate-400 break-all">URI: {{ provisioning_uri }}</p>
+      {% endif %}
+    </div>
+    <form method="POST" class="space-y-3">
+      <input type="hidden" name="action" value="enable">
+      <input type="hidden" name="secret" value="{{ secret }}">
+      <p class="text-sm font-semibold text-slate-700">2. Enter the 6-digit code from the app</p>
+      <input type="text" name="code" required inputmode="numeric" autocomplete="one-time-code"
+             placeholder="123456" maxlength="8"
+             class="w-full rounded-xl border border-orange-100 px-4 py-2.5 text-sm text-center tracking-widest">
+      <button type="submit" class="px-4 py-2.5 rounded-xl text-sm font-bold text-white phase-buy">Enable 2FA</button>
+    </form>
+    <form method="POST">
+      <input type="hidden" name="action" value="start">
+      <button type="submit" class="text-xs text-slate-500 hover:text-orange-brand">Generate a new secret</button>
+    </form>
+    {% endif %}
+
+    {% if enabled %}
+    <form method="POST" class="space-y-3">
+      <input type="hidden" name="action" value="disable">
+      <input type="text" name="code" required placeholder="Code to disable"
+             class="w-full rounded-xl border border-orange-100 px-4 py-2.5 text-sm text-center tracking-widest">
+      <button type="submit" class="px-4 py-2.5 rounded-xl text-sm font-semibold border border-red-200 text-red-600">Disable 2FA</button>
+    </form>
+    {% endif %}
+  </div>
+
+  <div class="mt-6 text-xs text-slate-500 space-y-1">
+    <p><strong>Tips if codes fail:</strong></p>
+    <ul class="list-disc ml-4 space-y-1">
+      <li>Phone date/time must be <strong>automatic</strong></li>
+      <li>Use the <em>current</em> code (they change every 30 seconds)</li>
+      <li>Re-add the secret if you generated a new one</li>
+      <li>Run the totp SQL columns in Supabase if save fails</li>
+    </ul>
+  </div>
+</div>
+{% endblock %}

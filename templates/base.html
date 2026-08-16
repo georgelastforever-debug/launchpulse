@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="csrf-token" content="{{ csrf_token() }}">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}LaunchPulse{% endblock %} · Product Launch Command Center</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            orange: {
+              50: '#FFF7ED', 100: '#FFEDD5', 200: '#FED7AA', 300: '#FDBA74',
+              400: '#FB923C', 500: '#F97316', 600: '#EA580C', 700: '#C2410C',
+              800: '#9A3412', 900: '#7C2D12', brand: '#FF6B00', deep: '#E85D04', hot: '#DC2F02',
+            }
+          },
+          fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'] },
+          boxShadow: {
+            'orange': '0 4px 14px 0 rgba(255, 107, 0, 0.25)',
+            'card': '0 1px 3px 0 rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.04)',
+          }
+        }
+      }
+    }
+  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: Inter, system-ui, sans-serif; background: #f8fafc; }
+    .bg-app { background: linear-gradient(180deg, #fff7ed 0%, #f8fafc 120px, #f8fafc 100%); }
+    .phase-buy { background: linear-gradient(135deg, #FF6B00 0%, #FF8C42 100%); }
+    .phase-review { background: linear-gradient(135deg, #E85D04 0%, #F48C06 100%); }
+    .phase-push { background: linear-gradient(135deg, #DC2F02 0%, #E85D04 100%); }
+    .progress-bar { transition: width 0.6s ease; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 12px 28px -8px rgba(255, 107, 0, 0.18); }
+    .nav-link { display: flex; align-items: center; gap: 0.75rem; padding: 0.625rem 0.875rem; border-radius: 0.75rem; font-size: 0.875rem; font-weight: 500; color: #475569; transition: all 0.15s; }
+    .nav-link:hover { background: #FFF7ED; color: #FF6B00; }
+    .nav-link.active { background: #FFEDD5; color: #FF6B00; font-weight: 600; }
+    .nav-section { font-size: 0.65rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #94a3b8; padding: 0.5rem 0.875rem 0.25rem; margin-top: 0.75rem; }
+    #sidebar { transition: transform 0.2s ease; }
+    @media (max-width: 1023px) { #sidebar.closed { transform: translateX(-100%); } }
+
+    #sidebar.collapsed { width: 4.5rem; }
+    #sidebar.collapsed .sidebar-label { display: none; }
+    #sidebar.collapsed .nav-section { visibility: hidden; height: 0; padding: 0; margin: 0; overflow: hidden; }
+    #sidebar.collapsed .nav-link { justify-content: center; padding-left: 0.5rem; padding-right: 0.5rem; }
+    #sidebar.collapsed #btn-collapse svg { transform: rotate(180deg); }
+
+
+    /* ---- Dark mode (class on <html>) ---- */
+    html.dark body, html.dark .bg-app {
+      background: #0f172a !important;
+      color: #e2e8f0;
+    }
+    html.dark .bg-white,
+    html.dark .bg-white\/90 {
+      background-color: #1e293b !important;
+    }
+    html.dark .bg-slate-50,
+    html.dark .bg-slate-50\/50 {
+      background-color: #0f172a !important;
+    }
+    html.dark .bg-orange-50,
+    html.dark .bg-orange-50\/50 {
+      background-color: rgba(255, 107, 0, 0.12) !important;
+    }
+    html.dark .border-orange-50,
+    html.dark .border-orange-100,
+    html.dark .border-orange-200 {
+      border-color: #334155 !important;
+    }
+    html.dark .text-slate-900,
+    html.dark .text-slate-800,
+    html.dark .text-slate-700 {
+      color: #f1f5f9 !important;
+    }
+    html.dark .text-slate-600,
+    html.dark .text-slate-500,
+    html.dark .text-slate-400 {
+      color: #94a3b8 !important;
+    }
+    html.dark .bg-slate-900 {
+      background-color: #020617 !important;
+    }
+    html.dark input,
+    html.dark textarea,
+    html.dark select {
+      background-color: #0f172a !important;
+      color: #e2e8f0 !important;
+      border-color: #334155 !important;
+    }
+    html.dark .shadow-card {
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4) !important;
+    }
+    html.dark #sidebar {
+      background-color: #1e293b !important;
+      border-color: #334155 !important;
+    }
+    html.dark header {
+      background-color: rgba(30, 41, 59, 0.95) !important;
+      border-color: #334155 !important;
+    }
+    html.dark .nav-link { color: #cbd5e1; }
+    html.dark .nav-link:hover { background: rgba(255,107,0,0.15); color: #fb923c; }
+    html.dark .nav-link.active { background: rgba(255,107,0,0.2); color: #fb923c; }
+    html.dark .nav-section { color: #64748b; }
+    html.dark footer { border-color: #334155 !important; color: #64748b !important; }
+    html.dark .bg-emerald-50 { background-color: rgba(16,185,129,0.15) !important; }
+    html.dark .bg-red-50 { background-color: rgba(239,68,68,0.15) !important; }
+    html.dark .bg-green-100\/70 { background-color: rgba(16,185,129,0.2) !important; }
+    html.dark .bg-red-100\/70 { background-color: rgba(239,68,68,0.2) !important; }
+    html.dark .bg-orange-100\/70 { background-color: rgba(255,107,0,0.2) !important; }
+    html.dark ::-webkit-scrollbar-track { background: #1e293b; }
+    html.dark ::-webkit-scrollbar-thumb { background: #ea580c; }
+    html.dark #cockpit-drawer { background: #1e293b !important; color: #e2e8f0; }
+    html.dark #cockpit-drawer .border-orange-100 { border-color: #334155 !important; }
+
+  </style>
+  {% block head %}{% endblock %}
+  <script>
+    (function () {
+      try {
+        var t = localStorage.getItem('lp_theme');
+        if (t === 'dark' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+          document.documentElement.classList.add('dark');
+        }
+      } catch (e) {}
+    })();
+  </script>
+</head>
+<body class="bg-app text-slate-800 min-h-screen antialiased">
+{% set is_app = user is defined and user %}
+
+<div class="{% if is_app %}flex min-h-screen{% endif %}">
+  {% if is_app %}
+  <div id="sidebar-overlay" class="fixed inset-0 bg-black/40 z-40 hidden lg:hidden" onclick="closeSidebar()"></div>
+  <aside id="sidebar" class="fixed lg:sticky top-0 left-0 z-50 h-screen w-64 bg-white border-r border-orange-100 flex flex-col closed lg:translate-x-0 transition-all duration-200">
+    <div class="flex items-center gap-3 px-4 h-16 border-b border-orange-50 shrink-0">
+      <div class="w-9 h-9 rounded-xl phase-buy flex items-center justify-center shadow-orange shrink-0"><span class="text-white text-lg">🍊</span></div>
+      <div class="min-w-0 sidebar-label flex-1">
+        <div class="text-base font-extrabold text-slate-900">Launch<span class="text-orange-brand">Pulse</span></div>
+        <div class="text-[10px] uppercase tracking-widest text-orange-600 font-semibold">90-Day System</div>
+      </div>
+      <button type="button" class="hidden lg:inline-flex p-1.5 rounded-lg text-slate-400 hover:bg-orange-50 hover:text-orange-brand" onclick="toggleSidebarCollapse()" title="Collapse sidebar" id="btn-collapse">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/></svg>
+      </button>
+      <button type="button" class="lg:hidden p-1.5 rounded-lg text-slate-400 hover:bg-slate-100" onclick="closeSidebar()">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+    </div>
+    <nav class="flex-1 overflow-y-auto px-3 py-4">
+      <div class="nav-section">Main</div>
+      <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}" title="Home"><span class="sidebar-label">Home</span></a>
+      <a href="{{ url_for('timeline') }}" class="nav-link {% if request.endpoint == 'timeline' %}active{% endif %}" title="Schedule"><span class="sidebar-label">Schedule</span></a>
+      <a href="{{ url_for('products_list') }}" class="nav-link {% if request.endpoint in ['products_list', 'product_detail', 'product_edit', 'product_new'] %}active{% endif %}" title="My products"><span class="sidebar-label">My products</span></a>
+      <div class="nav-section">Tracking</div>
+      <a href="{{ url_for('ba_index') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('ba') %}active{% endif %}" title="Buyer accounts"><span class="sidebar-label">Buyer accounts</span></a>
+      <a href="{{ url_for('emails_index') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('emails') %}active{% endif %}" title="Email accounts"><span class="sidebar-label">Email accounts</span></a>
+      <a href="{{ url_for('compare_products') }}" class="nav-link {% if request.endpoint == 'compare_products' %}active{% endif %}" title="Compare"><span class="sidebar-label">Compare</span></a>
+      <a href="{{ url_for('workspace_search') }}" class="nav-link {% if request.endpoint == 'workspace_search' %}active{% endif %}" title="Find anything"><span class="sidebar-label">Find anything</span></a>
+      {% if user.get('role') == 'admin' %}
+      <div class="nav-section">Admin</div>
+      <a href="{{ url_for('admin_home') }}" class="nav-link {% if request.endpoint and request.endpoint.startswith('admin') %}active{% endif %}" title="Team & logs"><span class="sidebar-label">Team &amp; logs</span></a>
+      <div class="nav-section">Exports</div>
+      <a href="{{ url_for('export_ba_csv') }}" class="nav-link" title="Buyer accounts CSV"><span class="sidebar-label">Buyer accounts export</span></a>
+      <a href="{{ url_for('export_emails_csv') }}" class="nav-link" title="Emails CSV"><span class="sidebar-label">Emails export</span></a>
+      {% endif %}
+      <div class="nav-section">Account</div>
+      <button type="button" onclick="toggleTheme(); syncThemeIcons();" class="nav-link w-full text-left" title="Dark mode">
+        <span class="sidebar-label">Dark mode</span>
+      </button>
+      <a href="{{ url_for('account_2fa') }}" class="nav-link {% if request.endpoint == 'account_2fa' %}active{% endif %}" title="2FA"><span class="sidebar-label">Security</span></a>
+      <a href="{{ url_for('logout') }}" class="nav-link" style="color:#dc2626" title="Log out"><span class="sidebar-label">Log out</span></a>
+    </nav>
+    <div class="border-t border-orange-50 p-4 shrink-0">
+      <div class="text-xs text-slate-500 truncate sidebar-label">{{ user.email }}</div>
+      {% if user.get('role') == 'admin' %}<div class="text-[10px] font-semibold text-orange-brand mt-0.5 sidebar-label">Admin</div>{% endif %}
+    </div>
+  </aside>
+  {% endif %}
+
+  <div class="{% if is_app %}flex-1 flex flex-col min-w-0 min-h-screen{% else %}min-h-screen{% endif %}">
+    {% if is_app %}
+    <header class="sticky top-0 z-30 h-14 bg-white/90 backdrop-blur-md border-b border-orange-100 flex items-center gap-3 px-4 sm:px-6">
+      <button type="button" class="lg:hidden p-2 rounded-lg text-slate-600 hover:bg-orange-50" onclick="openSidebar()">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+      </button>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-slate-800 truncate">{% block page_heading %}{% endblock %}</p>
+        <p class="text-[11px] text-slate-500 hidden sm:flex items-center gap-1.5 flex-wrap">
+          <span id="lp-date">{{ today_fmt if today_fmt else '' }}</span>
+          <span class="text-slate-300">·</span>
+          <span id="lp-clock" class="font-medium text-orange-700 tabular-nums">--:--</span>
+          <span class="text-slate-400">PT</span>
+          <span class="text-slate-300">·</span>
+          <span id="lp-pulse" class="text-slate-500 truncate max-w-[280px] lg:max-w-md">Checking ranks…</span>
+        </p>
+      </div>
+      <button type="button" id="theme-toggle" onclick="toggleTheme()"
+              class="p-2 rounded-xl border border-orange-100 text-slate-600 hover:bg-orange-50 hover:text-orange-brand transition"
+              title="Toggle dark mode" aria-label="Toggle dark mode">
+        <span class="dark:hidden" id="icon-moon">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+        </span>
+        <span class="hidden dark:inline" id="icon-sun">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+        </span>
+      </button>
+      <a href="{{ url_for('product_new') }}" class="inline-flex items-center gap-1.5 px-3 sm:px-4 py-2 rounded-xl text-sm font-semibold text-white phase-buy shadow-orange shrink-0">
+        <span class="text-lg leading-none">+</span>
+        <span class="hidden sm:inline">New Launch</span>
+      </a>
+    </header>
+    {% else %}
+    <header class="border-b border-orange-100 bg-white">
+      <div class="max-w-lg mx-auto px-4 h-14 flex items-center gap-3">
+        <div class="w-8 h-8 rounded-lg phase-buy flex items-center justify-center text-white text-sm">🍊</div>
+        <span class="font-extrabold text-slate-900">Launch<span class="text-orange-brand">Pulse</span></span>
+      </div>
+    </header>
+    {% endif %}
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="{% if is_app %}px-4 sm:px-6{% else %}max-w-lg mx-auto px-4{% endif %} pt-4 space-y-2">
+          {% for category, message in messages %}
+            <div class="px-4 py-3 rounded-xl text-sm font-medium {% if category == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% else %}bg-red-50 text-red-800 border border-red-200{% endif %}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <main class="{% if is_app %}flex-1 px-4 sm:px-6 lg:px-8 py-6{% else %}max-w-lg mx-auto px-4 py-8{% endif %}">
+      {% block content %}{% endblock %}
+    </main>
+
+    {% if is_app %}
+    <footer class="border-t border-orange-100 py-4 px-6 text-center text-xs text-slate-400">LaunchPulse · 90-Day Product Launch System</footer>
+    {% endif %}
+  </div>
+</div>
+
+{% if is_app %}
+<script>
+function openSidebar(){document.getElementById('sidebar').classList.remove('closed');document.getElementById('sidebar-overlay').classList.remove('hidden');}
+function closeSidebar(){document.getElementById('sidebar').classList.add('closed');document.getElementById('sidebar-overlay').classList.add('hidden');}
+function toggleSidebarCollapse(){
+  var s=document.getElementById('sidebar');
+  s.classList.toggle('collapsed');
+  try{localStorage.setItem('lp_sidebar_collapsed', s.classList.contains('collapsed')?'1':'0');}catch(e){}
+}
+(function(){
+  try{
+    if(localStorage.getItem('lp_sidebar_collapsed')==='1'){
+      var s=document.getElementById('sidebar');
+      if(s) s.classList.add('collapsed');
+    }
+  }catch(e){}
+})();
+</script>
+{% endif %}
+
+{% block scripts %}{% endblock %}
+<script>
+(function(){
+  function getToken(){var m=document.querySelector('meta[name="csrf-token"]');return m?m.getAttribute('content'):'';}
+  function injectForms(){var token=getToken();if(!token)return;document.querySelectorAll('form[method="POST"], form[method="post"]').forEach(function(form){if(form.querySelector('input[name="csrf_token"]'))return;var input=document.createElement('input');input.type='hidden';input.name='csrf_token';input.value=token;form.insertBefore(input,form.firstChild);});}
+  injectForms();
+  var origFetch=window.fetch;
+  window.fetch=function(input,init){init=init||{};var method=(init.method||'GET').toUpperCase();if(method!=='GET'&&method!=='HEAD'){init.headers=init.headers||{};if(init.headers instanceof Headers){if(!init.headers.has('X-CSRFToken'))init.headers.set('X-CSRFToken',getToken());}else if(!init.headers['X-CSRFToken']&&!init.headers['X-CSRF-Token']){init.headers['X-CSRFToken']=getToken();}}return origFetch.call(this,input,init);};
+})();
+</script>
+
+<script>
+(function(){
+  function tick(){
+    try {
+      var now = new Date();
+      var tOpts = { timeZone: 'America/Los_Angeles', hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true };
+      var dOpts = { timeZone: 'America/Los_Angeles', weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' };
+      var clock = document.getElementById('lp-clock');
+      var dateEl = document.getElementById('lp-date');
+      if (clock) clock.textContent = now.toLocaleTimeString('en-US', tOpts);
+      if (dateEl) dateEl.textContent = now.toLocaleDateString('en-US', dOpts);
+    } catch (e) {}
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
+</script>
+
+
+<script>
+function toggleTheme() {
+  var root = document.documentElement;
+  var dark = root.classList.toggle('dark');
+  try { localStorage.setItem('lp_theme', dark ? 'dark' : 'light'); } catch (e) {}
+}
+function syncThemeIcons() {
+  var dark = document.documentElement.classList.contains('dark');
+  var moon = document.getElementById('icon-moon');
+  var sun = document.getElementById('icon-sun');
+  if (moon) moon.style.display = dark ? 'none' : 'inline';
+  if (sun) sun.style.display = dark ? 'inline' : 'none';
+}
+syncThemeIcons();
+document.addEventListener('DOMContentLoaded', syncThemeIcons);
+</script>
+
+
+<!-- Product Cockpit Drawer -->
+<div id="cockpit-overlay" class="fixed inset-0 bg-black/40 z-[60] hidden" onclick="closeCockpit()"></div>
+<div id="cockpit-drawer" class="fixed top-0 right-0 h-full w-full max-w-md bg-white shadow-2xl z-[70] transform translate-x-full transition-transform duration-200 flex flex-col">
+  <div class="flex items-center justify-between px-5 h-14 border-b border-orange-100 shrink-0">
+    <h3 class="font-bold text-slate-900">Product cockpit</h3>
+    <button type="button" onclick="closeCockpit()" class="p-2 rounded-lg hover:bg-slate-100 text-slate-500">✕</button>
+  </div>
+  <div id="cockpit-body" class="flex-1 overflow-y-auto p-5">
+    <p class="text-sm text-slate-400">Loading…</p>
+  </div>
+</div>
+<script>
+function openCockpit(pid) {
+  var ov = document.getElementById('cockpit-overlay');
+  var dr = document.getElementById('cockpit-drawer');
+  var body = document.getElementById('cockpit-body');
+  ov.classList.remove('hidden');
+  dr.classList.remove('translate-x-full');
+  body.innerHTML = '<p class="text-sm text-slate-400">Loading cockpit…</p>';
+  fetch('/api/cockpit/' + pid)
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data.ok) {
+        body.innerHTML = '<p class="text-red-600 text-sm">' + (data.error || 'Failed') + '</p>';
+        return;
+      }
+      var p = data.product;
+      var ranks = data.ranks || [];
+      var heat = data.heatmap || [];
+      var html = '';
+      html += '<div class="flex gap-3 mb-5">';
+      if (p.thumbnail_url) html += '<img src="'+p.thumbnail_url+'" class="w-16 h-16 rounded-xl object-cover border border-orange-100">';
+      html += '<div class="min-w-0"><h4 class="font-extrabold text-slate-900 text-lg leading-snug break-words">'+esc(p.name)+'</h4>';
+      if (p.price_fmt) html += '<span class="text-emerald-600 font-semibold">'+esc(p.price_fmt)+'</span> ';
+      if (p.asin) html += '<p class="text-xs font-mono text-slate-400">'+esc(p.asin)+'</p>';
+      html += '<p class="text-xs text-orange-700 font-semibold mt-1">'+esc(p.label||'')+(p.days_left!=null ? ' · '+p.days_left+'d left' : '')+'</p>';
+      html += '</div></div>';
+
+      // Rank strip
+      html += '<div class="mb-5"><div class="flex items-center justify-between mb-2"><h5 class="text-xs font-bold uppercase tracking-wider text-slate-400">Rank strip</h5>';
+      if (data.soldscope) html += '<span class="text-[10px] text-slate-400">SoldScope</span>';
+      html += '</div>';
+      if (!data.soldscope) {
+        html += '<p class="text-xs text-slate-400">Set SOLDSCOPE_API_TOKEN to load ranks.</p>';
+      } else if (!ranks.length) {
+        html += '<p class="text-xs text-slate-400">No rank data for this ASIN. Add keywords in SoldScope for this ASIN.</p>';
+      } else {
+        html += '<div class="space-y-1.5 max-h-48 overflow-y-auto">';
+        ranks.forEach(function(r){
+          var org = r.organic;
+          var badge = 'bg-slate-100 text-slate-600';
+          if (org && org <= 10) badge = 'bg-emerald-100 text-emerald-800';
+          else if (org && org <= 50) badge = 'bg-orange-100 text-orange-800';
+          html += '<div class="flex items-center justify-between gap-2 text-sm"><span class="truncate text-slate-700">'+esc(r.phrase)+'</span>';
+          html += '<span class="shrink-0 text-xs font-bold px-2 py-0.5 rounded-full '+badge+'">'+(org!=null ? '#'+org : '—')+'</span></div>';
+        });
+        html += '</div>';
+      }
+      html += '</div>';
+
+      // Product keywords with organic ranks
+      var kwr = p.keywords_ranked || [];
+      if (kwr.length) {
+        html += '<div class="mb-5"><h5 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Keywords</h5><div class="flex flex-wrap gap-1.5">';
+        kwr.forEach(function(item){
+          var badge = 'text-slate-400';
+          if (item.organic != null && item.organic <= 10) badge = 'text-emerald-600';
+          else if (item.organic != null && item.organic <= 50) badge = 'text-orange-600';
+          html += '<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-100">'+esc(item.keyword)+' <b class="'+badge+'">'+(item.organic!=null ? '#'+item.organic : '#—')+'</b></span>';
+        });
+        html += '</div></div>';
+      }
+
+
+      // Buys today
+      html += '<div class="mb-5 p-3 rounded-xl bg-orange-50 border border-orange-100"><p class="text-xs font-bold text-orange-800 uppercase">Today\'s buys</p>';
+      html += '<p class="text-2xl font-extrabold text-slate-900 mt-1">'+(p.today_buys_actual||0)+' <span class="text-base font-medium text-slate-500">/ '+(p.today_buys||0)+'</span></p>';
+      html += '<p class="text-xs '+(p.buys_on_track ? 'text-emerald-600' : 'text-red-600')+' font-semibold">'+(p.today_buys ? (p.buys_on_track ? 'On track' : 'Behind') : 'No plan')+'</p></div>';
+
+      // Mini heatmap
+      html += '<div class="mb-5"><h5 class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Month buys</h5><div class="flex flex-wrap gap-1">';
+      heat.forEach(function(h){
+        var cls = 'bg-slate-100 text-slate-400';
+        if (h.planned > 0 && h.actual >= h.planned) cls = 'bg-emerald-400 text-white';
+        else if (h.actual > 0 && h.actual < h.planned) cls = 'bg-amber-300 text-amber-900';
+        else if (h.planned > 0 && h.actual === 0) cls = 'bg-red-300 text-red-900';
+        else if (h.actual > 0) cls = 'bg-sky-200 text-sky-900';
+        html += '<div class="w-7 h-7 rounded '+cls+' flex items-center justify-center text-[9px] font-bold" title="Day '+h.day+': '+h.actual+'/'+h.planned+'">'+h.day+'</div>';
+      });
+      html += '</div></div>';
+
+      // Links
+      html += '<div class="grid grid-cols-2 gap-2">';
+      html += '<a href="'+p.detail_url+'" class="text-center text-sm font-semibold py-2.5 rounded-xl border border-orange-200 text-orange-brand">Full page</a>';
+      html += '<a href="'+p.edit_url+'" class="text-center text-sm font-semibold py-2.5 rounded-xl border border-orange-200 text-orange-brand">Edit</a>';
+      html += '<a href="'+p.ba_url+'" class="text-center text-sm font-semibold py-2.5 rounded-xl bg-slate-900 text-white">BA sheet</a>';
+      html += '</div>';
+      body.innerHTML = html;
+    })
+    .catch(function(e){
+      body.innerHTML = '<p class="text-red-600 text-sm">'+esc(String(e))+'</p>';
+    });
+}
+function closeCockpit() {
+  document.getElementById('cockpit-overlay').classList.add('hidden');
+  document.getElementById('cockpit-drawer').classList.add('translate-x-full');
+}
+function esc(s) {
+  if (s == null) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+
+
+<script>
+(function(){
+  var el = document.getElementById('lp-pulse');
+  if (!el) return;
+  fetch('/api/pulse').then(function(r){ return r.json(); }).then(function(d){
+    var alerts = (d && d.alerts) || [];
+    if (!alerts.length) {
+      el.textContent = d.message || 'Ranks stable';
+      el.className = 'text-slate-400 truncate max-w-[280px] lg:max-w-md';
+      return;
+    }
+    var parts = alerts.slice(0,4).map(function(a){
+      var sign = a.delta > 0 ? '↓' : '↑';
+      var name = (a.product || '').split(' ')[0];
+      return sign + ' ' + name + ' ' + (a.phrase||'').slice(0,18) + ' #' + a.prev + '→#' + a.organic;
+    });
+    el.textContent = parts.join(' · ');
+    el.className = 'text-red-600 font-medium truncate max-w-[280px] lg:max-w-md';
+    el.title = parts.join('\n');
+  }).catch(function(){ el.textContent = ''; });
+})();
+</script>
+
+</body>
+</html>

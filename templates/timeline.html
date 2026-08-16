@@ -1,0 +1,276 @@
+{% extends "base.html" %}
+{% block title %}Schedules{% endblock %}
+{% block page_heading %}Schedules{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+  <h2 class="text-2xl font-extrabold text-slate-900 tracking-tight">Schedules</h2>
+  <p class="text-slate-500 mt-1">Pre-launch checklist timeline and post-launch phase calendar.</p>
+</div>
+
+<!-- ========== PRE-LAUNCH ========== -->
+<section class="mb-12">
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-4">
+    <div>
+      <h3 class="text-lg font-bold text-slate-900">Pre-launch schedule</h3>
+      <p class="text-sm text-slate-500">Steps before launch day. Click a cell to cycle: To do → Doing → Done.</p>
+    </div>
+    <div class="flex flex-wrap gap-2 text-[11px]">
+      <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 text-slate-600"><span class="w-2 h-2 rounded-full bg-slate-400"></span> To do</span>
+      <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-sky-50 text-sky-800"><span class="w-2 h-2 rounded-full bg-sky-500"></span> Doing</span>
+      <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-emerald-50 text-emerald-800"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Done</span>
+      <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-50 text-red-700"><span class="w-2 h-2 rounded-full bg-red-500"></span> Window overdue</span>
+    </div>
+  </div>
+
+  <div class="bg-white rounded-2xl border border-sky-100 shadow-card overflow-x-auto">
+    <table class="w-full min-w-[960px]" id="prelaunch-table">
+      <thead>
+        <tr class="bg-slate-900 text-white">
+          <th class="text-left px-4 py-3 text-sm font-semibold sticky left-0 bg-slate-900 z-10 min-w-[160px]">Product</th>
+          {% for step in pre_launch_steps %}
+          <th class="px-2 py-3 text-center text-[11px] font-semibold min-w-[110px]" title="{{ step.desc }}">
+            <span class="inline-block w-2 h-2 rounded-full mr-1" style="background:{{ step.color }}"></span>
+            {{ step.short }}
+            <span class="block text-[9px] font-normal opacity-70 mt-0.5">T-{{ step.days_before_start }}→T-{{ step.days_before_end }}</span>
+          </th>
+          {% endfor %}
+          <th class="px-3 py-3 text-center text-xs font-semibold w-16">%</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in products %}
+        <tr class="border-t border-slate-100 hover:bg-sky-50/40 transition" data-product-id="{{ p.id }}">
+          <td class="px-4 py-3 sticky left-0 bg-white z-10">
+            <div class="flex items-center gap-2 min-w-0">
+              {% if p.thumbnail_url %}
+              <img src="{{ p.thumbnail_url }}" class="w-8 h-8 rounded-lg object-cover shrink-0" alt="">
+              {% endif %}
+              <div class="min-w-0">
+                <a href="{{ url_for('product_detail', pid=p.id) }}" class="font-bold text-slate-900 hover:text-orange-brand text-sm truncate block">
+                  {{ p.name }}{% if p.price_fmt %} <span class="text-emerald-600">{{ p.price_fmt }}</span>{% endif %}
+                </a>
+                <p class="text-[10px] text-slate-400 truncate">
+                  Launch {{ p.launch_fmt }}
+                  {% if p.phase == 0 %}<span class="text-sky-600 font-semibold">· Pre-launch</span>{% endif %}
+                </p>
+              </div>
+            </div>
+          </td>
+          {% for step in p.prelaunch_steps %}
+          <td class="px-1.5 py-2 text-center align-middle">
+            <button type="button"
+                    class="prelaunch-chip w-full rounded-lg text-[10px] font-bold py-2 px-1 border transition hover:scale-[1.02] hover:shadow-sm
+                      {% if step.status == 'done' %}bg-emerald-500 text-white border-emerald-600
+                      {% elif step.status == 'doing' %}bg-sky-500 text-white border-sky-600
+                      {% elif step.auto == 'overdue' %}bg-red-50 text-red-700 border-red-200
+                      {% elif step.auto == 'active' %}bg-amber-50 text-amber-900 border-amber-200
+                      {% else %}bg-slate-50 text-slate-500 border-slate-200{% endif %}"
+                    data-product-id="{{ p.id }}"
+                    data-step="{{ step.key }}"
+                    data-status="{{ step.status }}"
+                    title="{{ step.name }} · {{ step.start_fmt }} – {{ step.end_fmt }} · {{ step.desc }}">
+              <span class="block leading-tight">{{ step.short }}</span>
+              <span class="block font-semibold opacity-90 mt-0.5 chip-status">
+                {% if step.status == 'done' %}Done
+                {% elif step.status == 'doing' %}Doing
+                {% elif step.auto == 'overdue' %}Overdue
+                {% elif step.auto == 'active' %}Window
+                {% else %}To do{% endif %}
+              </span>
+              <span class="block text-[9px] font-normal opacity-70 mt-0.5">{{ step.start_fmt }}–{{ step.end_fmt }}</span>
+            </button>
+          </td>
+          {% else %}
+          {% for step in pre_launch_steps %}
+          <td class="px-1.5 py-2"><div class="h-12 rounded-lg bg-slate-50 border border-dashed border-slate-200"></div></td>
+          {% endfor %}
+          {% endfor %}
+          <td class="px-3 py-2 text-center text-sm font-bold text-slate-700">{{ p.prelaunch_progress or 0 }}%</td>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="{{ (pre_launch_steps|length) + 2 }}" class="px-5 py-10 text-center text-slate-400 text-sm">No products yet.</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <p class="text-[11px] text-slate-400 mt-2">Date windows are relative to each product’s launch date (T-minus days). Status is saved per product.</p>
+</section>
+
+<!-- ========== POST-LAUNCH ========== -->
+<section>
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-4">
+    <div>
+      <h3 class="text-lg font-bold text-slate-900">Post-launch timeline</h3>
+      <p class="text-sm text-slate-500">Drag any phase chip onto a different month — the whole app updates.</p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+      {% for num, info in phase_info.items() %}
+      <div class="flex items-center gap-2 text-sm">
+        <span class="w-3.5 h-3.5 rounded shadow-sm" style="background: {{ info.color }}"></span>
+        <span class="font-medium text-slate-700">{{ info.short }} — {{ info.name }}</span>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div id="timeline-wrap" class="bg-white rounded-2xl border border-orange-100 shadow-card overflow-x-auto">
+    <table class="w-full min-w-[800px]" id="timeline-table">
+      <thead>
+        <tr class="bg-slate-900 text-white">
+          <th class="text-left px-5 py-4 text-sm font-semibold sticky left-0 bg-slate-900 z-10 min-w-[150px]">Product</th>
+          {% for m in months %}
+          <th class="px-2 py-4 text-center text-xs font-semibold min-w-[96px] {% if m.is_current %}bg-orange-brand{% endif %}" data-month="{{ m.key }}">
+            {{ m.label }}
+            {% if m.is_current %}<span class="block text-[10px] font-normal opacity-90">NOW</span>{% endif %}
+          </th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in timeline_rows %}
+        <tr class="border-t border-orange-50 hover:bg-orange-50/30 transition" data-product-id="{{ row.product.id }}">
+          <td class="px-5 py-3 sticky left-0 bg-white z-10">
+            <div class="flex items-center gap-2">
+              {% if row.product.thumbnail_url %}
+              <img src="{{ row.product.thumbnail_url }}" class="w-8 h-8 rounded-lg object-cover shrink-0" alt="">
+              {% endif %}
+              <div class="min-w-0">
+                <a href="{{ url_for('product_detail', pid=row.product.id) }}" class="font-bold text-slate-900 hover:text-orange-brand transition text-sm">
+                  {{ row.product.name }}{% if row.product.price_fmt %} <span class="text-emerald-600 font-semibold">{{ row.product.price_fmt }}</span>{% endif %}
+                </a>
+                <p class="text-[11px] text-slate-400 mt-0.5 truncate">
+                  {{ row.product.launch_fmt }} · {{ row.product.label }}
+                  {% if row.product.asin %} · <span class="font-mono">{{ row.product.asin }}</span>{% endif %}
+                </p>
+              </div>
+            </div>
+          </td>
+          {% for m in months %}
+          {% set ph = row.phases.get(m.key, 0) %}
+          <td class="px-1.5 py-2 text-center drop-cell relative min-h-[48px]" data-month="{{ m.key }}" data-product-id="{{ row.product.id }}">
+            {% if ph in [1, 2, 3, 4] %}
+            <div class="phase-chip mx-auto rounded-lg text-white text-[11px] font-bold py-2 px-1 shadow cursor-grab active:cursor-grabbing select-none transition hover:scale-105 hover:shadow-md"
+                 draggable="true"
+                 data-phase="{{ ph }}"
+                 data-product-id="{{ row.product.id }}"
+                 data-month="{{ m.key }}"
+                 style="background: {{ phase_info[ph].color }}">
+              {{ phase_info[ph].short }}
+            </div>
+            {% else %}
+            <div class="empty-slot mx-auto h-9 rounded-lg border border-dashed border-slate-200 bg-slate-50/50"></div>
+            {% endif %}
+          </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if not timeline_rows %}
+  <div class="mt-8 text-center text-slate-400">No products yet. Add your first launch!</div>
+  {% endif %}
+</section>
+
+<div id="toast" class="fixed bottom-6 right-6 hidden z-50 max-w-sm px-5 py-3 rounded-xl shadow-lg text-sm font-medium text-white bg-slate-900"></div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function () {
+  const toast = document.getElementById('toast');
+  function showToast(msg, ok) {
+    toast.textContent = msg;
+    toast.className = 'fixed bottom-6 right-6 z-50 max-w-sm px-5 py-3 rounded-xl shadow-lg text-sm font-medium text-white ' + (ok ? 'bg-emerald-600' : 'bg-red-600');
+    toast.classList.remove('hidden');
+    setTimeout(function () { toast.classList.add('hidden'); }, 3200);
+  }
+
+  // --- Pre-launch status cycle ---
+  var order = ['todo', 'doing', 'done'];
+  document.querySelectorAll('.prelaunch-chip').forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      var pid = btn.getAttribute('data-product-id');
+      var step = btn.getAttribute('data-step');
+      var cur = btn.getAttribute('data-status') || 'todo';
+      var next = order[(order.indexOf(cur) + 1) % order.length];
+      btn.disabled = true;
+      fetch('/api/product/' + pid + '/prelaunch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ step: step, status: next })
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        btn.disabled = false;
+        if (!data.ok) {
+          showToast(data.error || 'Update failed', false);
+          return;
+        }
+        btn.setAttribute('data-status', next);
+        var label = btn.querySelector('.chip-status');
+        if (label) label.textContent = next === 'done' ? 'Done' : next === 'doing' ? 'Doing' : 'To do';
+        btn.className = 'prelaunch-chip w-full rounded-lg text-[10px] font-bold py-2 px-1 border transition hover:scale-[1.02] hover:shadow-sm ' +
+          (next === 'done' ? 'bg-emerald-500 text-white border-emerald-600'
+            : next === 'doing' ? 'bg-sky-500 text-white border-sky-600'
+            : 'bg-slate-50 text-slate-500 border-slate-200');
+        showToast('Saved: ' + step.replace(/_/g, ' ') + ' → ' + next, true);
+      }).catch(function () {
+        btn.disabled = false;
+        showToast('Network error', false);
+      });
+    });
+  });
+
+  // --- Post-launch drag/drop (existing) ---
+  var dragPhase = null, dragProductId = null, dragFromMonth = null;
+
+  document.querySelectorAll('.phase-chip').forEach(function (chip) {
+    chip.addEventListener('dragstart', function (e) {
+      dragPhase = chip.getAttribute('data-phase');
+      dragProductId = chip.getAttribute('data-product-id');
+      dragFromMonth = chip.getAttribute('data-month');
+      e.dataTransfer.effectAllowed = 'move';
+      chip.classList.add('opacity-50');
+    });
+    chip.addEventListener('dragend', function () {
+      chip.classList.remove('opacity-50');
+    });
+  });
+
+  document.querySelectorAll('.drop-cell').forEach(function (cell) {
+    cell.addEventListener('dragover', function (e) {
+      e.preventDefault();
+      cell.classList.add('ring-2', 'ring-orange-brand');
+    });
+    cell.addEventListener('dragleave', function () {
+      cell.classList.remove('ring-2', 'ring-orange-brand');
+    });
+    cell.addEventListener('drop', function (e) {
+      e.preventDefault();
+      cell.classList.remove('ring-2', 'ring-orange-brand');
+      var toMonth = cell.getAttribute('data-month');
+      var pid = cell.getAttribute('data-product-id');
+      if (!dragPhase || !pid || !toMonth) return;
+      if (String(pid) !== String(dragProductId)) return;
+      fetch('/api/product/' + pid + '/move-phase', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ phase: parseInt(dragPhase, 10), target_month: toMonth })
+      }).then(function (r) { return r.json(); }).then(function (data) {
+        if (data.ok) {
+          showToast('Timeline updated', true);
+          setTimeout(function () { location.reload(); }, 600);
+        } else {
+          showToast(data.error || 'Move failed', false);
+        }
+      }).catch(function () { showToast('Network error', false); });
+    });
+  });
+})();
+</script>
+{% endblock %}

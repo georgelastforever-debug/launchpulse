@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · {{ product.name }}{% endblock %}
+
+{% block content %}
+<div class="mb-6 flex flex-col gap-4">
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+    <div>
+      <a href="{{ url_for('ba_index' if sheet_type == 'ba' else 'emails_index') }}"
+         class="text-sm font-medium text-orange-brand hover:text-orange-deep">← All {{ title }}</a>
+      <div class="flex items-center gap-3 mt-2">
+        {% if product.thumbnail_url %}
+        <img src="{{ product.thumbnail_url }}" class="w-12 h-12 rounded-xl object-cover border border-orange-100" alt="">
+        {% endif %}
+        <div>
+          <h2 class="text-xl font-extrabold text-slate-900 break-words">{{ product.name }}{% if product.price_fmt %} <span class="text-emerald-600">{{ product.price_fmt }}</span>{% endif %}</h2>
+          <p class="text-sm text-slate-500">{{ title }} database{% if product.asin %} · <span class="font-mono text-xs">{{ product.asin }}</span>{% endif %}</p>
+        </div>
+      </div>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a href="{{ url_for('workspace_export_csv', sheet_id=sheet.id) }}"
+         class="px-3 py-2 rounded-xl text-sm font-semibold border border-orange-200 text-orange-brand hover:bg-orange-50">Export CSV</a>
+      <form action="{{ url_for('workspace_add_row', sheet_id=sheet.id) }}" method="POST">
+        <button type="submit" class="px-4 py-2 rounded-xl text-sm font-semibold text-white phase-buy shadow-orange">+ Row</button>
+      </form>
+      <form action="{{ url_for('workspace_add_column', sheet_id=sheet.id) }}" method="POST" class="flex gap-1">
+        <input type="text" name="name" placeholder="Column name" class="rounded-xl border border-orange-100 px-3 py-2 text-sm w-36 focus:outline-none focus:ring-2 focus:ring-orange-brand/40">
+        <button type="submit" class="px-3 py-2 rounded-xl text-sm font-semibold border border-orange-200 text-orange-brand hover:bg-orange-50">+ Column</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Status legend + color filter -->
+  <div class="flex flex-wrap items-center gap-3 text-xs">
+    <span class="font-semibold text-slate-500">Status:</span>
+    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-green-100 text-green-800"><span class="w-2.5 h-2.5 rounded bg-green-400"></span> Done</span>
+    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-orange-100 text-orange-800"><span class="w-2.5 h-2.5 rounded bg-orange-400"></span> In progress</span>
+    <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-red-100 text-red-800"><span class="w-2.5 h-2.5 rounded bg-red-400"></span> Blocked</span>
+    <span class="text-slate-300">|</span>
+    <span class="font-semibold text-slate-500">Filter:</span>
+    {% set base = url_for('ba_sheet' if sheet_type == 'ba' else 'emails_sheet', pid=product.id) %}
+    <a href="{{ base }}" class="px-2 py-1 rounded-lg {% if not color_filter %}bg-slate-900 text-white{% else %}bg-slate-100 text-slate-600{% endif %}">All</a>
+    <a href="{{ base }}?color=green" class="px-2 py-1 rounded-lg {% if color_filter == 'green' %}bg-green-600 text-white{% else %}bg-green-100 text-green-800{% endif %}">Done</a>
+    <a href="{{ base }}?color=orange" class="px-2 py-1 rounded-lg {% if color_filter == 'orange' %}bg-orange-600 text-white{% else %}bg-orange-100 text-orange-800{% endif %}">In progress</a>
+    <a href="{{ base }}?color=red" class="px-2 py-1 rounded-lg {% if color_filter == 'red' %}bg-red-600 text-white{% else %}bg-red-100 text-red-800{% endif %}">Blocked</a>
+  </div>
+</div>
+
+<div class="bg-white rounded-2xl border border-orange-100 shadow-card overflow-x-auto">
+  <table class="w-full min-w-[1000px] text-sm">
+    <thead>
+      <tr class="bg-slate-900 text-white">
+        <th class="px-3 py-3 text-left text-xs font-semibold w-36">Status</th>
+        {% for col in columns %}
+        <th class="px-2 py-3 text-left text-xs font-semibold min-w-[120px]">
+          <form action="{{ url_for('workspace_rename_column', col_id=col.id) }}" method="POST">
+            <input type="text" name="name" value="{{ col.name }}"
+                   class="bg-transparent border-b border-white/30 w-full text-white text-xs font-semibold focus:outline-none focus:border-orange-brand px-1 py-0.5">
+          </form>
+        </th>
+        {% endfor %}
+        <th class="px-3 py-3 text-left text-xs font-semibold min-w-[120px]">Last edited by</th>
+        <th class="px-3 py-3 w-24"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr class="border-t border-orange-50
+        {% if row.color == 'green' %}bg-green-100/70
+        {% elif row.color == 'red' %}bg-red-100/70
+        {% elif row.color == 'orange' %}bg-orange-100/70
+        {% else %}bg-white{% endif %}">
+        <td class="px-3 py-2">
+          <form action="{{ url_for('workspace_row_color', row_id=row.id) }}" method="POST" class="flex flex-col gap-1">
+            <div class="flex gap-1">
+              <button name="color" value="none" title="Clear" class="w-5 h-5 rounded border border-slate-300 bg-white"></button>
+              <button name="color" value="green" title="Done" class="w-5 h-5 rounded bg-green-300 border border-green-400"></button>
+              <button name="color" value="orange" title="In progress" class="w-5 h-5 rounded bg-orange-300 border border-orange-400"></button>
+              <button name="color" value="red" title="Blocked" class="w-5 h-5 rounded bg-red-300 border border-red-400"></button>
+            </div>
+            <span class="text-[10px] font-semibold
+              {% if row.color == 'green' %}text-green-700
+              {% elif row.color == 'orange' %}text-orange-700
+              {% elif row.color == 'red' %}text-red-700
+              {% else %}text-slate-400{% endif %}">
+              {% if row.color == 'green' %}Done
+              {% elif row.color == 'orange' %}In progress
+              {% elif row.color == 'red' %}Blocked
+              {% else %}—{% endif %}
+            </span>
+          </form>
+        </td>
+        {% for col in columns %}
+        <td class="px-1 py-1">
+          <form action="{{ url_for('workspace_save_cell', row_id=row.id) }}" method="POST">
+            <input type="hidden" name="col_id" value="{{ col.id }}">
+            <input type="text" name="value"
+                   value="{{ (row.data or {}).get(col.id|string, (row.data or {}).get(col.id, '')) }}"
+                   class="w-full rounded-lg border border-transparent hover:border-orange-100 focus:border-orange-brand focus:outline-none px-2 py-1.5 bg-transparent text-sm"
+                   onchange="this.form.submit()">
+          </form>
+        </td>
+        {% endfor %}
+        <td class="px-3 py-2 text-xs text-slate-500">
+          {{ row.updated_by or '—' }}
+          {% if row.updated_at %}<div class="text-[10px] text-slate-400">{{ row.updated_at[:16]|replace('T',' ') }}</div>{% endif %}
+        </td>
+        <td class="px-2 py-1 text-center space-y-1">
+          <form action="{{ url_for('workspace_duplicate_row', row_id=row.id) }}" method="POST">
+            <button type="submit" class="text-xs text-orange-brand hover:underline">Duplicate</button>
+          </form>
+          <form action="{{ url_for('workspace_delete_row', row_id=row.id) }}" method="POST" onsubmit="return confirm('Delete this row?')">
+            <button type="submit" class="text-xs text-red-500 hover:underline">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% else %}
+      <tr>
+        <td colspan="{{ columns|length + 3 }}" class="px-6 py-12 text-center text-slate-400">
+          {% if color_filter %}No rows with this status. <a href="{{ base }}" class="text-orange-brand hover:underline">Show all</a>
+          {% else %}No rows. Click + Row to add one.{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+{% if columns %}
+<div class="mt-4 flex flex-wrap gap-4 text-xs text-slate-500">
+  {% for col in columns %}
+  <form action="{{ url_for('workspace_delete_column', col_id=col.id) }}" method="POST" onsubmit="return confirm('Delete column {{ col.name }}?')" class="inline">
+    <button type="submit" class="hover:text-red-600">Delete column “{{ col.name }}”</button>
+  </form>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

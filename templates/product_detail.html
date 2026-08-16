@@ -1,0 +1,307 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }}{% endblock %}
+
+{% block content %}
+
+<div class="mb-6 grid grid-cols-1 sm:grid-cols-3 gap-3" data-insights-panel="{{ product.id }}">
+  <div class="bg-white rounded-2xl border border-orange-100 p-4 shadow-card">
+    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Share of shelf</p>
+    <p class="text-2xl font-extrabold text-slate-900 mt-1" data-sos-pct>—</p>
+    <p class="text-xs text-slate-500" data-sos-detail>Page-1 keyword coverage</p>
+  </div>
+  <div class="bg-white rounded-2xl border border-orange-100 p-4 shadow-card">
+    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">BSR (30d)</p>
+    <div class="mt-2 min-h-[28px]" data-bsr-spark><span class="text-xs text-slate-400">…</span></div>
+  </div>
+  <div class="bg-white rounded-2xl border border-orange-100 p-4 shadow-card">
+    <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Rank moves</p>
+    <div class="mt-1 text-xs space-y-1" data-rank-alerts><span class="text-slate-400">…</span></div>
+  </div>
+</div>
+<div data-empty-hints class="mb-4 space-y-2"></div>
+<div class="mb-4"><p class="text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">SoldScope organic ranks</p><div id="ss-rank-strip" class="flex flex-wrap gap-1.5 text-slate-400 text-xs">Loading ranks…</div></div>
+
+<div class="mb-6">
+  <a href="{{ url_for('products_list') }}" class="text-sm font-medium text-orange-brand hover:text-orange-deep">← All Products</a>
+</div>
+
+<div class="bg-white rounded-2xl border border-orange-100 shadow-card overflow-hidden mb-8">
+  <div class="h-2" style="background: {{ product.phase_info.color if product.phase_info else '#FF6B00' }}"></div>
+  <div class="p-6 sm:p-8">
+    <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+      <div>
+        <div class="flex items-center gap-4">
+          {% if product.get('thumbnail_url') %}
+          <img src="{{ product.thumbnail_url }}" alt="" class="w-16 h-16 rounded-xl object-cover border border-orange-100 shadow-sm">
+          {% endif %}
+          <div>
+            <h2 class="text-2xl sm:text-3xl font-extrabold text-slate-900">{{ product.name }}{% if product.price_fmt %} <span class="text-emerald-600">{{ product.price_fmt }}</span>{% endif %}</h2>
+            <p class="text-slate-500 mt-1">Launched {{ product.launch_fmt }} · Status: <span class="font-medium">{{ product.status|capitalize }}</span></p>
+            <div class="flex flex-wrap gap-3 mt-2 text-xs">
+              {% if product.asin %}
+              <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-slate-100 text-slate-700 font-mono">ASIN {{ product.asin }}</span>
+              {% endif %}
+              {% if product.month_buys_total %}
+              <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-orange-50 text-orange-brand font-semibold">{{ product.month_buys_total }} buys / month planned</span>
+              {% endif %}
+              {% if product.today_buys %}
+              <span class="inline-flex items-center gap-1 px-2 py-1 rounded-lg bg-orange-100 text-orange-deep font-semibold">Today: {{ product.today_buys }} buys</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        {% if product.phase in [1,2,3] %}
+        <button id="btn-advance" type="button"
+                class="px-4 py-2 rounded-xl text-sm font-semibold text-white phase-buy shadow-orange hover:opacity-95 transition">
+          Advance Phase →
+        </button>
+        {% endif %}
+        <a href="{{ url_for('product_edit', pid=product.id) }}"
+           class="px-4 py-2 rounded-xl text-sm font-semibold border border-orange-200 text-orange-brand hover:bg-orange-50 transition">
+          Edit
+        </a>
+        <form action="{{ url_for('product_delete', pid=product.id) }}" method="POST" onsubmit="return confirm('Delete this product?')">
+          <button type="submit" class="px-4 py-2 rounded-xl text-sm font-semibold border border-red-200 text-red-600 hover:bg-red-50 transition">
+            Delete
+          </button>
+        </form>
+      </div>
+    </div>
+
+    {% if product.notes %}
+    <p class="mt-4 text-slate-600 bg-orange-50/60 rounded-xl px-4 py-3 text-sm leading-relaxed">{{ product.notes }}</p>
+    {% endif %}
+
+    {% if product.phase in [1,2,3,4] %}
+    <div class="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div class="bg-slate-50 rounded-xl p-4">
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Current Phase</p>
+        <p class="text-lg font-bold text-slate-900 mt-1">{{ product.phase_info.icon }} {{ product.label }}</p>
+      </div>
+      <div class="bg-slate-50 rounded-xl p-4">
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Phase Progress</p>
+        {% if product.phase == 4 %}
+        <p class="text-lg font-bold text-slate-900 mt-1">Ongoing</p>
+        {% else %}
+        <div class="flex items-center gap-3 mt-2">
+          <div class="flex-1 h-2.5 bg-slate-200 rounded-full overflow-hidden">
+            <div class="h-full rounded-full" style="width: {{ product.progress }}%; background: {{ product.phase_info.color }}"></div>
+          </div>
+          <span class="text-sm font-bold text-slate-700">{{ product.progress }}%</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="bg-slate-50 rounded-xl p-4">
+        <p class="text-xs font-semibold uppercase tracking-wider text-slate-400">Days Remaining</p>
+        <p class="text-lg font-bold text-slate-900 mt-1">
+          {% if product.days_left is not none %}{{ product.days_left }} days{% else %}—{% endif %}
+        </p>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+
+{% if product.daily_buys or product.daily_buys_actual %}
+<section class="mb-8">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
+    <h3 class="text-lg font-bold text-slate-900">Daily Buys Tracker</h3>
+    <form action="{{ url_for('form_log_buys', pid=product.id) }}" method="POST" class="flex items-center gap-2">
+      <label class="text-xs font-semibold text-slate-500">Log actual for day</label>
+      <input type="number" name="day" min="1" max="31" value="{{ today_day }}" class="w-14 rounded-lg border border-orange-100 px-2 py-1 text-sm text-center" id="log-day">
+      <input type="number" name="actual" min="0" value="{{ product.today_buys_actual }}" class="w-16 rounded-lg border border-orange-100 px-2 py-1 text-sm text-center">
+      <button type="submit" class="px-3 py-1.5 rounded-lg text-xs font-bold text-white phase-buy">Save</button>
+    </form>
+  </div>
+  <div class="bg-white rounded-2xl border border-orange-100 shadow-card p-5">
+    <div class="grid grid-cols-7 sm:grid-cols-11 gap-2">
+      {% for d in range(1, 32) %}
+      {% set plan = (product.daily_buys or {}).get(d|string, 0) or 0 %}
+      {% set act = (product.daily_buys_actual or {}).get(d|string, 0) or 0 %}
+      <div class="text-center rounded-lg py-2 border
+        {% if plan and act >= plan %}bg-emerald-50 border-emerald-200
+        {% elif plan and act < plan %}bg-red-50 border-red-200
+        {% elif plan %}bg-orange-50 border-orange-100
+        {% else %}bg-slate-50 border-transparent{% endif %}">
+        <div class="text-[10px] font-semibold text-slate-400">{{ d }}</div>
+        <div class="text-xs font-bold text-slate-700">{{ act }}/{{ plan if plan else '—' }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    <p class="text-xs text-slate-500 mt-3">
+      Planned month: <strong>{{ product.month_buys_total }}</strong>
+      · Actual so far: <strong>{{ product.month_buys_actual_total }}</strong>
+      · Today: <strong class="{% if product.today_buys and not product.buys_on_track %}text-red-600{% else %}text-orange-brand{% endif %}">{{ product.today_buys_actual }}/{{ product.today_buys }}</strong>
+    </p>
+  </div>
+</section>
+{% endif %}
+
+<div class="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-5">
+  {% for num, info in phase_info.items() %}
+  <div class="bg-white rounded-2xl border border-orange-100 shadow-card overflow-hidden
+              {% if product.phase == num %}ring-2 ring-offset-2{% endif %}"
+       {% if product.phase == num %}style="ring-color: {{ info.color }}; box-shadow: 0 0 0 2px {{ info.color }}"{% endif %}>
+    <div class="h-1.5" style="background: {{ info.color }}"></div>
+    <div class="p-5">
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-xl">{{ info.icon }}</span>
+          <div>
+            <p class="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              {% if num <= 3 %}Month {{ num }}{% else %}Ongoing{% endif %}
+            </p>
+            <h4 class="font-bold text-slate-900">{{ info.name }}</h4>
+          </div>
+        </div>
+        {% if product.phase == num %}
+        <span class="text-[10px] font-bold uppercase tracking-wider text-white px-2 py-0.5 rounded-full" style="background: {{ info.color }}">Active</span>
+        {% endif %}
+      </div>
+
+      <p class="text-sm text-slate-600 mb-4">{{ info.desc }}</p>
+
+      <ul class="space-y-1.5 mb-3">
+        {% for task in info.tasks %}
+        <li class="flex items-start gap-2 text-sm text-slate-600">
+          <span style="color: {{ info.color }}">▹</span> {{ task }}
+        </li>
+        {% endfor %}
+      </ul>
+      {% if phase_keywords_ranked is defined and phase_keywords_ranked.get(num) %}
+      <div class="mt-2 flex flex-wrap gap-1.5 items-center">
+        <span class="text-xs font-semibold text-slate-600">Keywords:</span>
+        {% for item in phase_keywords_ranked.get(num) %}
+        <span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg bg-orange-50 border border-orange-100 text-slate-800" data-phase-kw="{{ item.keyword }}">
+          {{ item.keyword }}
+          <span data-rank-badge class="font-bold {% if item.organic is not none %}{% if item.organic <= 10 %}text-emerald-600{% elif item.organic <= 50 %}text-orange-600{% else %}text-slate-500{% endif %}{% else %}text-slate-400{% endif %}">{% if item.organic is not none %}#{{ item.organic }}{% else %}…{% endif %}</span>
+        </span>
+        {% endfor %}
+      </div>
+      {% elif phase_keywords is defined and phase_keywords.get(num) %}
+      <p class="text-xs text-slate-500 mt-2">
+        <span class="font-semibold text-slate-600">Keywords:</span>
+        {{ phase_keywords.get(num) }}
+      </p>
+      {% endif %}
+
+      <form action="{{ url_for('save_phase_note', pid=product.id) }}" method="POST" class="border-t border-orange-50 pt-4">
+        <input type="hidden" name="phase" value="{{ num }}">
+        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Team Notes</label>
+        <textarea name="content" rows="3"
+                  class="w-full rounded-xl border border-orange-100 bg-orange-50/30 px-3 py-2 text-sm text-slate-700
+                         focus:outline-none focus:ring-2 focus:ring-orange-brand/40 focus:border-orange-brand resize-none"
+                  placeholder="Add notes for this phase...">{{ (notes_map or {}).get(num, '') }}</textarea>
+        <button type="submit"
+                class="mt-2 w-full py-2 rounded-xl text-sm font-semibold text-white hover:opacity-95 transition"
+                style="background: {{ info.color }}">
+          Save Notes
+        </button>
+      </form>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+var btn = document.getElementById('btn-advance');
+if (btn) {
+  btn.addEventListener('click', async function () {
+    if (!confirm('Advance this product to the next phase?')) return;
+    btn.disabled = true;
+    btn.textContent = 'Advancing…';
+    try {
+      var res = await fetch('/api/product/{{ product.id }}/advance', { method: 'POST' });
+      var data = await res.json();
+      if (data.ok) {
+        window.location.reload();
+      } else {
+        alert(data.error || 'Failed');
+        btn.disabled = false;
+        btn.textContent = 'Advance Phase →';
+      }
+    } catch (e) {
+      alert('Network error');
+      btn.disabled = false;
+      btn.textContent = 'Advance Phase →';
+    }
+  });
+}
+</script>
+<script>
+(function(){
+  var pid = {{ product.id }};
+  fetch('/api/product/' + pid + '/keyword-ranks')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      if (!data.ok) return;
+      var byKw = {};
+      (data.keywords || []).forEach(function(i){ byKw[(i.keyword||'').toLowerCase()] = i.organic; });
+      document.querySelectorAll('[data-phase-kw]').forEach(function(el){
+        var kw = (el.getAttribute('data-phase-kw') || '').toLowerCase();
+        var org = byKw[kw];
+        if (org == null && data.soldscope_phrases) {
+          data.soldscope_phrases.forEach(function(r){
+            var p = (r.phrase||'').toLowerCase();
+            if (p === kw || p.indexOf(kw) >= 0 || kw.indexOf(p) >= 0) org = r.organic;
+          });
+        }
+        var badge = el.querySelector('[data-rank-badge]');
+        if (badge) {
+          badge.textContent = (org != null) ? ('#' + org) : '#—';
+          badge.className = 'font-bold ' + (org != null && org <= 10 ? 'text-emerald-600' : org != null && org <= 50 ? 'text-orange-600' : 'text-slate-500');
+        }
+      });
+      // Also fill soldscope strip if present
+      var strip = document.getElementById('ss-rank-strip');
+      if (strip && data.soldscope_phrases && data.soldscope_phrases.length) {
+        strip.innerHTML = data.soldscope_phrases.map(function(r){
+          var org = r.organic;
+          var color = org != null && org <= 10 ? 'text-emerald-600' : org != null && org <= 50 ? 'text-orange-600' : 'text-slate-600';
+          return '<span class="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-lg bg-slate-50 border border-slate-200">' +
+            (r.phrase||'') + ' <b class="' + color + '">' + (org != null ? '#'+org : '#—') + '</b></span>';
+        }).join(' ');
+      }
+    });
+})();
+</script>
+
+<script>
+(function(){
+  var panel = document.querySelector('[data-insights-panel]');
+  if (!panel) return;
+  var pid = panel.getAttribute('data-insights-panel');
+  fetch('/api/product/' + pid + '/insights').then(function(r){ return r.json(); }).then(function(d){
+    var sos = d.share_of_shelf || {};
+    var pctEl = panel.querySelector('[data-sos-pct]');
+    var detEl = panel.querySelector('[data-sos-detail]');
+    if (pctEl) pctEl.textContent = sos.pct != null ? (sos.pct + '%') : '—';
+    if (detEl && sos.total) detEl.textContent = sos.owned + ' of ' + sos.total + ' keywords on ~page 1';
+    var spark = panel.querySelector('[data-bsr-spark]');
+    if (spark) spark.innerHTML = d.bsr_svg || '<span class="text-xs text-slate-400">No BSR history</span>';
+    var al = panel.querySelector('[data-rank-alerts]');
+    if (al) {
+      var alerts = d.alerts || [];
+      if (!alerts.length) al.innerHTML = '<span class="text-slate-400">No big moves</span>';
+      else al.innerHTML = alerts.slice(0,5).map(function(a){
+        var cls = a.type === 'drop' ? 'text-red-600' : 'text-emerald-600';
+        return '<div class="'+cls+'">' + (a.phrase||'') + ': #' + a.prev + ' → #' + a.organic + '</div>';
+      }).join('');
+    }
+    var hints = document.querySelector('[data-empty-hints]');
+    if (hints && d.empty_hints && d.empty_hints.length) {
+      hints.innerHTML = d.empty_hints.map(function(h){
+        return '<div class="p-4 rounded-2xl bg-orange-50 border border-orange-100"><p class="font-bold text-slate-900">'+h.title+'</p><p class="text-sm text-slate-600 mt-1">'+h.body+'</p>' +
+          (h.url ? '<a href="'+h.url+'" class="inline-block mt-2 text-sm font-semibold text-orange-brand">'+(h.cta||'Open')+' →</a>' : '') + '</div>';
+      }).join('');
+    }
+  }).catch(function(){});
+})();
+</script>
+
+{% endblock %}
